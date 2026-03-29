@@ -73,7 +73,7 @@ header p {
   background: white;
   border: 1px solid #ddd;
   border-radius: 8px;
-  height: 960px;
+  /* height set dynamically in app.js */
   min-width: 480px;
 }
 
@@ -87,6 +87,7 @@ header p {
   font-size: 11px;
   padding-left: 4px;
   color: #888;
+  box-sizing: border-box;
 }
 
 .events {
@@ -104,6 +105,54 @@ header p {
   box-shadow: 0 1px 4px rgba(0,0,0,0.2);
   overflow: hidden;
   box-sizing: border-box;
+}
+
+.event-actions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 3px;
+  opacity: 0;
+  transition: opacity 0.12s;
+  z-index: 1;
+}
+
+.event:hover .event-actions {
+  opacity: 1;
+}
+
+.event-star,
+.event-link {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.25);
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.event-star:hover,
+.event-link:hover {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.event-star::before {
+  content: "☆";
+}
+
+.event.selected .event-star::before {
+  content: "★";
+  color: #fbbf24;
 }
 
 .event.selected {
@@ -134,13 +183,30 @@ header p {
   padding: 8px 10px;
   border-radius: 6px;
   font-size: 12px;
-  max-width: 280px;
+  max-width: 320px;
   display: none;
   pointer-events: none;
   z-index: 500;
   line-height: 1.4;
   opacity: 0;
   transition: opacity 0.15s ease;
+}
+
+.tooltip-time {
+  opacity: 0.75;
+  font-size: 11px;
+}
+
+.tooltip-desc {
+  margin-top: 6px;
+  opacity: 0.85;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: normal;
+}
+
+.hint-star {
+  color: #fbbf24;
 }
 
 /* Modal */

@@ -1,6 +1,5 @@
 const DAY_START = 8 * 60;
-const DAY_END = 24 * 60;
-const DAY_DURATION = DAY_END - DAY_START;
+const HOUR_PX = 60;
 
 const tooltip = document.getElementById("tooltip");
 
@@ -114,13 +113,16 @@ function showDay(dayLabel, days) {
 
   layoutOverlaps(events);
 
+  const latestEnd = Math.max(...events.map(e => e.endMinutes));
+  const dayEnd = Math.ceil(latestEnd / 60) * 60;
+
   const dayEl = document.createElement("div");
   dayEl.className = "day";
 
   const timeCol = document.createElement("div");
   timeCol.className = "time-column";
 
-  for (let h = DAY_START / 60; h <= DAY_END / 60; h++) {
+  for (let h = DAY_START / 60; h <= dayEnd / 60; h++) {
     const hour = document.createElement("div");
     hour.className = "hour";
     hour.innerText = `${h}:00`;
@@ -129,10 +131,11 @@ function showDay(dayLabel, days) {
 
   const eventsCol = document.createElement("div");
   eventsCol.className = "events";
+  eventsCol.style.height = ((dayEnd / 60 - DAY_START / 60 + 1) * HOUR_PX) + "px";
 
   events.forEach(e => {
-    const top = (e.startMinutes - DAY_START) / DAY_DURATION * 100;
-    const height = (e.endMinutes - e.startMinutes) / DAY_DURATION * 100;
+    const top = (e.startMinutes - DAY_START) / 60 * HOUR_PX;
+    const height = (e.endMinutes - e.startMinutes) / 60 * HOUR_PX;
 
     const ev = document.createElement("div");
     ev.className = "event";
@@ -140,24 +143,40 @@ function showDay(dayLabel, days) {
 
     if (selected.has(e.url)) ev.classList.add("selected");
 
-    ev.style.top = top + "%";
-    ev.style.height = height + "%";
+    ev.style.top = top + "px";
+    ev.style.height = height + "px";
     ev.style.left = (e.column / e.columns * 100) + "%";
     ev.style.width = (100 / e.columns) + "%";
 
     ev.innerHTML = `
+      <div class="event-actions">
+        <button class="event-star" aria-label="Mark as considering" title="Mark as considering"></button>
+        <a class="event-link" href="${e.url}" target="_blank" rel="noopener" aria-label="Open event page" title="Open event page">↗</a>
+      </div>
       <div class="event-title">${e.name}</div>
       <div class="event-time">${e.startStr} – ${e.endStr}</div>
     `;
 
+    const starBtn = ev.querySelector(".event-star");
+    starBtn.onclick = (event) => {
+      event.stopPropagation();
+      if (selected.has(e.url)) {
+        selected.delete(e.url);
+      } else {
+        selected.add(e.url);
+      }
+      localStorage.setItem("awf-selected", JSON.stringify([...selected]));
+      document.querySelectorAll(`.event[data-url="${CSS.escape(e.url)}"]`).forEach(el => {
+        el.classList.toggle("selected", selected.has(e.url));
+      });
+      if (currentModalEvent && currentModalEvent.url === e.url) syncModalToggle(e);
+    };
+
+    ev.querySelector(".event-link").onclick = (event) => { event.stopPropagation(); };
+
     ev.onclick = (event) => {
       event.stopPropagation();
       openModal(e);
-    };
-
-    ev.ondblclick = (event) => {
-      event.stopPropagation();
-      window.open(e.url);
     };
 
     // Desktop hover tooltip (not shown on touch devices)
@@ -190,7 +209,18 @@ function showDay(dayLabel, days) {
 }
 
 function showTooltip(e) {
-  tooltip.innerHTML = `<strong>${e.name}</strong><br>${e.startStr} – ${e.endStr}`;
+  let descHtml = "";
+  if (e.description) {
+    const tmp = document.createElement("div");
+    tmp.innerHTML = e.description;
+    const text = (tmp.textContent || tmp.innerText || "")
+      .replace(/^Event \d+\n[^\n]+\n\n/, "").trim();
+    if (text) {
+      const truncated = text.length > 280 ? text.slice(0, 280) + "…" : text;
+      descHtml = `<div class="tooltip-desc">${truncated}</div>`;
+    }
+  }
+  tooltip.innerHTML = `<strong>${e.name}</strong><br><span class="tooltip-time">${e.startStr} – ${e.endStr}</span>${descHtml}`;
   tooltip.style.display = "block";
   tooltip.style.opacity = 1;
 }
