@@ -1,5 +1,5 @@
 const DAY_START = 8 * 60;
-const DAY_END = 22 * 60;
+const DAY_END = 24 * 60;
 const DAY_DURATION = DAY_END - DAY_START;
 
 const tooltip = document.getElementById("tooltip");
@@ -7,6 +7,68 @@ const tooltip = document.getElementById("tooltip");
 let selected = new Set(
   JSON.parse(localStorage.getItem("awf-selected") || "[]")
 );
+
+let currentModalEvent = null;
+
+// Modal elements
+const modalOverlay = document.getElementById("modal-overlay");
+const modalClose = document.getElementById("modal-close");
+const modalImg = document.getElementById("modal-img");
+const modalTitle = document.getElementById("modal-title");
+const modalTime = document.getElementById("modal-time");
+const modalDesc = document.getElementById("modal-desc");
+const modalToggle = document.getElementById("modal-toggle");
+const modalLink = document.getElementById("modal-link");
+
+modalClose.onclick = closeModal;
+modalOverlay.onclick = (e) => { if (e.target === modalOverlay) closeModal(); };
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+
+modalToggle.onclick = () => {
+  const e = currentModalEvent;
+  if (!e) return;
+  if (selected.has(e.url)) {
+    selected.delete(e.url);
+  } else {
+    selected.add(e.url);
+  }
+  localStorage.setItem("awf-selected", JSON.stringify([...selected]));
+  syncModalToggle(e);
+  // Update cards in the grid
+  document.querySelectorAll(`.event[data-url="${CSS.escape(e.url)}"]`).forEach(el => {
+    el.classList.toggle("selected", selected.has(e.url));
+  });
+};
+
+function openModal(e) {
+  currentModalEvent = e;
+  modalTitle.textContent = e.name;
+  modalTime.textContent = `${e.dateStr} · ${e.startStr} – ${e.endStr}`;
+
+  if (e.image) {
+    modalImg.src = e.image;
+    modalImg.classList.remove("no-image");
+  } else {
+    modalImg.src = "";
+    modalImg.classList.add("no-image");
+  }
+
+  modalDesc.innerHTML = e.description || "";
+  modalLink.href = e.url;
+  syncModalToggle(e);
+  modalOverlay.classList.remove("hidden");
+}
+
+function closeModal() {
+  modalOverlay.classList.add("hidden");
+  currentModalEvent = null;
+}
+
+function syncModalToggle(e) {
+  const isSelected = selected.has(e.url);
+  modalToggle.textContent = isSelected ? "✓ Marked as Considering" : "Mark as Considering";
+  modalToggle.classList.toggle("selected", isSelected);
+}
 
 fetch("./awf-events.json")
   .then(r => r.json())
@@ -74,6 +136,7 @@ function showDay(dayLabel, days) {
 
     const ev = document.createElement("div");
     ev.className = "event";
+    ev.dataset.url = e.url;
 
     if (selected.has(e.url)) ev.classList.add("selected");
 
@@ -89,25 +152,23 @@ function showDay(dayLabel, days) {
 
     ev.onclick = (event) => {
       event.stopPropagation();
-      if (selected.has(e.url)) {
-        selected.delete(e.url);
-        ev.classList.remove("selected");
-      } else {
-        selected.add(e.url);
-        ev.classList.add("selected");
-      }
-      localStorage.setItem("awf-selected", JSON.stringify([...selected]));
+      openModal(e);
     };
 
-    ev.ondblclick = () => window.open(e.url);
+    ev.ondblclick = (event) => {
+      event.stopPropagation();
+      window.open(e.url);
+    };
 
-    ev.onmouseenter = () => showTooltip(e);
-    ev.onmouseleave = () => tooltip.style.display = "none";
+    // Desktop hover tooltip (not shown on touch devices)
+    ev.onmouseenter = () => {
+      if (window.matchMedia("(hover: hover)").matches) showTooltip(e);
+    };
+    ev.onmouseleave = () => { tooltip.style.display = "none"; };
 
     ev.onmousemove = (event) => {
       const tooltipRect = tooltip.getBoundingClientRect();
       const pageWidth = window.innerWidth;
-      const pageHeight = window.innerHeight;
 
       let left = event.clientX - tooltipRect.width / 2;
       let top = event.clientY - tooltipRect.height - 12;
@@ -129,11 +190,7 @@ function showDay(dayLabel, days) {
 }
 
 function showTooltip(e) {
-  tooltip.innerHTML = `
-    <strong>${e.name}</strong><br>
-    ${e.startStr} – ${e.endStr}<br><br>
-    ${e.description}
-  `;
+  tooltip.innerHTML = `<strong>${e.name}</strong><br>${e.startStr} – ${e.endStr}`;
   tooltip.style.display = "block";
   tooltip.style.opacity = 1;
 }
@@ -154,6 +211,7 @@ function groupByDay(events) {
 }
 
 function layoutOverlaps(events) {
+  // Assign columns via sweep line
   let active = [];
   for (const e of events) {
     active = active.filter(a => a.endMinutes > e.startMinutes);
@@ -163,6 +221,13 @@ function layoutOverlaps(events) {
     e.column = col;
     active.push(e);
   }
-  const maxCol = Math.max(...events.map(e => e.column), 0) + 1;
-  events.forEach(e => e.columns = maxCol);
+
+  // Each event's column count is determined by its local overlap group,
+  // so isolated events get full width rather than inheriting the global max.
+  for (const e of events) {
+    const concurrent = events.filter(other =>
+      other.startMinutes < e.endMinutes && other.endMinutes > e.startMinutes
+    );
+    e.columns = Math.max(...concurrent.map(o => o.column)) + 1;
+  }
 }

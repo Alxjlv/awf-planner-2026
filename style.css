@@ -2,24 +2,45 @@ body {
   font-family: system-ui;
   margin: 0;
   background: #f3f4f6;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 header {
-  padding: 20px;
+  padding: 16px 20px;
   background: white;
   border-bottom: 1px solid #ddd;
+  flex-shrink: 0;
 }
 
 h1 {
+  margin: 0 0 4px;
+  font-size: clamp(16px, 4vw, 24px);
+}
+
+header p {
   margin: 0;
+  font-size: 13px;
+  color: #666;
 }
 
 #day-tabs {
   display: flex;
-  gap: 10px;
-  padding: 15px;
+  gap: 8px;
+  padding: 12px 15px;
   background: #fafafa;
   border-bottom: 1px solid #ddd;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+
+#day-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .day-tab {
@@ -27,7 +48,10 @@ h1 {
   border-radius: 6px;
   background: #e5e7eb;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  user-select: none;
 }
 
 .day-tab.active {
@@ -36,16 +60,21 @@ h1 {
 }
 
 #calendar {
-  padding: 20px;
+  padding: 16px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+  min-height: 0;
 }
 
 .day {
   display: grid;
-  grid-template-columns: 80px 1fr;
+  grid-template-columns: 52px 1fr;
   background: white;
   border: 1px solid #ddd;
   border-radius: 8px;
-  height: 900px;
+  height: 960px;
+  min-width: 480px;
 }
 
 .time-column {
@@ -53,11 +82,11 @@ h1 {
 }
 
 .hour {
-  height: 75px;
+  height: 60px;
   border-top: 1px solid #eee;
-  font-size: 12px;
+  font-size: 11px;
   padding-left: 4px;
-  color: #666;
+  color: #888;
 }
 
 .events {
@@ -66,13 +95,15 @@ h1 {
 
 .event {
   position: absolute;
-  border-radius: 6px;
-  padding: 8px;
-  font-size: 13px;
+  border-radius: 5px;
+  padding: 5px 7px;
+  font-size: 12px;
   background: #2563eb;
   color: white;
   cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .event.selected {
@@ -85,24 +116,152 @@ h1 {
 
 .event-title {
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .event-time {
-  font-size: 12px;
+  font-size: 11px;
   opacity: 0.9;
+  white-space: nowrap;
 }
 
 #tooltip {
   position: fixed;
-  background: black;
+  background: #1e1e1e;
   color: white;
-  padding: 8px;
-  border-radius: 4px;
+  padding: 8px 10px;
+  border-radius: 6px;
   font-size: 12px;
-  max-width: 300px;
+  max-width: 280px;
   display: none;
   pointer-events: none;
-  z-index: 999;
-  transition: opacity 0.15s ease;
+  z-index: 500;
+  line-height: 1.4;
   opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+/* Modal */
+
+#modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+#modal-overlay.hidden {
+  display: none;
+}
+
+#modal {
+  background: white;
+  border-radius: 12px;
+  max-width: 560px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+  position: relative;
+  box-sizing: border-box;
+}
+
+#modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #999;
+  padding: 4px 8px;
+  line-height: 1;
+  border-radius: 4px;
+}
+
+#modal-close:hover {
+  color: #333;
+  background: #f3f4f6;
+}
+
+#modal-header {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 16px;
+  align-items: flex-start;
+  padding-right: 28px;
+}
+
+#modal-img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+#modal-img.no-image {
+  display: none;
+}
+
+#modal-title {
+  margin: 0 0 6px;
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+#modal-time {
+  font-size: 13px;
+  color: #666;
+}
+
+#modal-desc {
+  font-size: 14px;
+  line-height: 1.65;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+#modal-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+#modal-toggle {
+  padding: 9px 16px;
+  border-radius: 6px;
+  border: none;
+  background: #2563eb;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+#modal-toggle.selected {
+  background: #16a34a;
+}
+
+#modal-toggle:hover {
+  filter: brightness(1.1);
+}
+
+#modal-link {
+  color: #2563eb;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+#modal-link:hover {
+  text-decoration: underline;
 }

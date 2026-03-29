@@ -19,6 +19,24 @@
 
 <div id="tooltip"></div>
 
+<div id="modal-overlay" class="hidden">
+  <div id="modal">
+    <button id="modal-close" aria-label="Close">✕</button>
+    <div id="modal-header">
+      <img id="modal-img" alt="">
+      <div id="modal-meta">
+        <h2 id="modal-title"></h2>
+        <div id="modal-time"></div>
+      </div>
+    </div>
+    <div id="modal-desc"></div>
+    <div id="modal-actions">
+      <button id="modal-toggle">Mark as Considering</button>
+      <a id="modal-link" target="_blank" rel="noopener">Open event page →</a>
+    </div>
+  </div>
+</div>
+
 <script src="app.js"></script>
 </body>
 </html>
